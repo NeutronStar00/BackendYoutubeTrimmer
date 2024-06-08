@@ -38,7 +38,6 @@ const mergeFiles = (videoPath, audioPath, outputPath) => {
         resolve();
       })
       .on('error', (err) => {
-        console.error('Error during merging:', err);
         reject(err);
       });
   });
@@ -69,6 +68,7 @@ app.get('/', (req, res) => {
 });
 
 // Endpoint to handle trimming requests
+// Endpoint to handle trimming requests
 app.post('/trim', async (req, res) => {
   const { url, start, end } = req.body;
   const outputDir = path.join(__dirname, generateFilename());
@@ -81,25 +81,34 @@ app.post('/trim', async (req, res) => {
     const videoPath = path.join(outputDir, videoFilename);
     const audioPath = path.join(outputDir, audioFilename);
 
-    // Download video and audio separately
-    const downloadVideo = ytdl(url, { format: 'bestvideo[ext=mp4]', output: videoPath });
-    const downloadAudio = ytdl(url, { format: 'bestaudio[ext=m4a]', output: audioPath });
-
-    await Promise.all([downloadVideo, downloadAudio]);
-
-    console.log('Video download completed!');
     console.log(`Video Path: ${videoPath}`);
     console.log(`Audio Path: ${audioPath}`);
 
-    // Check if files exist
+    // Download video and audio separately
+    await Promise.all([
+      ytdl(url, { format: 'bestvideo[ext=mp4]', output: videoPath })
+        .then(output => console.log(`Video downloaded: ${output}`))
+        .catch(err => console.error(`Video download error: ${err}`)),
+      ytdl(url, { format: 'bestaudio[ext=m4a]', output: audioPath })
+        .then(output => console.log(`Audio downloaded: ${output}`))
+        .catch(err => console.error(`Audio download error: ${err}`))
+    ]);
+
+    console.log('Video download completed!');
+
+    // Check if files exist after download
     if (!fs.existsSync(videoPath)) {
-      console.error(`Video file does not exist: ${videoPath}`);
       throw new Error(`Video file does not exist: ${videoPath}`);
     }
     if (!fs.existsSync(audioPath)) {
-      console.error(`Audio file does not exist: ${audioPath}`);
       throw new Error(`Audio file does not exist: ${audioPath}`);
     }
+
+    // Log contents of the directory
+    console.log(`Contents of directory ${outputDir}:`);
+    fs.readdirSync(outputDir).forEach(file => {
+      console.log(file);
+    });
 
     const mergedPath = path.join(outputDir, 'merged_video.mp4');
     await mergeFiles(videoPath, audioPath, mergedPath);
@@ -118,6 +127,7 @@ app.post('/trim', async (req, res) => {
     res.status(500).json({ error: 'Error processing video' });
   }
 });
+
 
 // Serve the trimmed videos
 app.use(express.static(path.join(__dirname, 'videos')));
