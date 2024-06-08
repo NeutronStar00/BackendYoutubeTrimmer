@@ -70,15 +70,15 @@ app.get('/', (req, res) => {
 // Endpoint to handle trimming requests
 app.post('/trim', async (req, res) => {
   const { url, start, end } = req.body;
-  const outputDir = path.join(__dirname, generateFilename());
-  fs.mkdirSync(outputDir, { recursive: true });
+  const videosDir = path.join(__dirname, 'videos');
+  fs.mkdirSync(videosDir, { recursive: true });
 
   try {
     console.log('Starting video download...');
     const videoFilename = generateFilename() + '.mp4';
     const audioFilename = generateFilename() + '.m4a';
-    const videoPath = path.join(outputDir, videoFilename);
-    const audioPath = path.join(outputDir, audioFilename);
+    const videoPath = path.join(videosDir, videoFilename);
+    const audioPath = path.join(videosDir, audioFilename);
 
     console.log(`Video Path: ${videoPath}`);
     console.log(`Audio Path: ${audioPath}`);
@@ -105,22 +105,22 @@ app.post('/trim', async (req, res) => {
     }
 
     // Log contents of the directory
-    console.log(`Contents of directory ${outputDir}:`);
-    fs.readdirSync(outputDir).forEach(file => {
+    console.log(`Contents of directory ${videosDir}:`);
+    fs.readdirSync(videosDir).forEach(file => {
       console.log(file);
     });
 
-    const mergedPath = path.join(outputDir, 'merged_video.mp4');
+    const mergedPath = path.join(videosDir, 'merged_video.mp4');
     await mergeFiles(videoPath, audioPath, mergedPath);
 
-    const trimmedOutputPath = path.join(outputDir, 'output.mp4');
+    const trimmedOutputPath = path.join(videosDir, 'output.mp4');
     await trimVideo(mergedPath, trimmedOutputPath, start, end);
 
-    const downloadUrl = `https://backendyoutubetrimmer.onrender.com/${outputDir}/output.mp4`;
+    const downloadUrl = `https://backendyoutubetrimmer.onrender.com/${videosDir}/output.mp4`;
     res.json({ downloadUrl });
 
     setTimeout(() => {
-      deleteVideoDirectory(outputDir);
+      deleteVideoDirectory(videosDir);
     }, 60 * 10 * 1000); // 10 minutes in milliseconds
   } catch (err) {
     console.error('Error occurred:', err);
@@ -131,7 +131,7 @@ app.post('/trim', async (req, res) => {
 
 
 // Serve the trimmed videos
-app.use(express.static(path.join(__dirname, 'videos')));
+app.use(express.static(videosDir));
 
 // Function to delete the video directory
 const deleteVideoDirectory = (dirPath) => {
