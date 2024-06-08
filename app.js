@@ -68,8 +68,6 @@ app.get('/', (req, res) => {
 });
 
 // Endpoint to handle trimming requests
-// Endpoint to handle trimming requests
-// Endpoint to handle trimming requests
 app.post('/trim', async (req, res) => {
   const { url, start, end } = req.body;
   const outputDir = path.join(__dirname, generateFilename());
@@ -96,7 +94,7 @@ app.post('/trim', async (req, res) => {
 
     await Promise.all([videoPromise, audioPromise]);
 
-    console.log('Video download completed!');
+    console.log('Video download completed');
 
     // Check if files exist after download
     if (!fs.existsSync(videoPath)) {
