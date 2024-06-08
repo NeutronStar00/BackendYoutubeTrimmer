@@ -82,19 +82,22 @@ app.post('/trim', async (req, res) => {
     const audioPath = path.join(outputDir, audioFilename);
 
     // Download video and audio separately
-    await Promise.all([
-      ytdl(url, { format: 'bestvideo[ext=mp4]', output: videoPath }),
-      ytdl(url, { format: 'bestaudio[ext=m4a]', output: audioPath })
-    ]);
+    const downloadVideo = ytdl(url, { format: 'bestvideo[ext=mp4]', output: videoPath });
+    const downloadAudio = ytdl(url, { format: 'bestaudio[ext=m4a]', output: audioPath });
+
+    await Promise.all([downloadVideo, downloadAudio]);
 
     console.log('Video download completed!');
     console.log(`Video Path: ${videoPath}`);
     console.log(`Audio Path: ${audioPath}`);
 
+    // Check if files exist
     if (!fs.existsSync(videoPath)) {
+      console.error(`Video file does not exist: ${videoPath}`);
       throw new Error(`Video file does not exist: ${videoPath}`);
     }
     if (!fs.existsSync(audioPath)) {
+      console.error(`Audio file does not exist: ${audioPath}`);
       throw new Error(`Audio file does not exist: ${audioPath}`);
     }
 
@@ -106,6 +109,7 @@ app.post('/trim', async (req, res) => {
 
     const downloadUrl = `https://backendyoutubetrimmer.onrender.com/${outputDir}/output.mp4`;
     res.json({ downloadUrl });
+
     setTimeout(() => {
       deleteVideoDirectory(outputDir);
     }, 60 * 10 * 1000); // 10 minutes in milliseconds
