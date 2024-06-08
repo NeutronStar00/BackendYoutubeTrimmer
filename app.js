@@ -69,6 +69,7 @@ app.get('/', (req, res) => {
 
 // Endpoint to handle trimming requests
 // Endpoint to handle trimming requests
+// Endpoint to handle trimming requests
 app.post('/trim', async (req, res) => {
   const { url, start, end } = req.body;
   const outputDir = path.join(__dirname, generateFilename());
@@ -85,14 +86,15 @@ app.post('/trim', async (req, res) => {
     console.log(`Audio Path: ${audioPath}`);
 
     // Download video and audio separately
-    await Promise.all([
-      ytdl(url, { format: 'bestvideo[ext=mp4]', output: videoPath })
-        .then(output => console.log(`Video downloaded: ${output}`))
-        .catch(err => console.error(`Video download error: ${err}`)),
-      ytdl(url, { format: 'bestaudio[ext=m4a]', output: audioPath })
-        .then(output => console.log(`Audio downloaded: ${output}`))
-        .catch(err => console.error(`Audio download error: ${err}`))
-    ]);
+    const videoPromise = ytdl(url, { format: 'bestvideo[ext=mp4]', output: videoPath })
+      .then(output => console.log(`Video downloaded: ${output}`))
+      .catch(err => { throw new Error(`Error downloading video: ${err}`) });
+
+    const audioPromise = ytdl(url, { format: 'bestaudio[ext=m4a]', output: audioPath })
+      .then(output => console.log(`Audio downloaded: ${output}`))
+      .catch(err => { throw new Error(`Error downloading audio: ${err}`) });
+
+    await Promise.all([videoPromise, audioPromise]);
 
     console.log('Video download completed!');
 
@@ -127,6 +129,7 @@ app.post('/trim', async (req, res) => {
     res.status(500).json({ error: 'Error processing video' });
   }
 });
+
 
 
 // Serve the trimmed videos
