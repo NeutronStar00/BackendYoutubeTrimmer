@@ -116,8 +116,13 @@ app.post('/trim', async (req, res) => {
     const trimmedOutputPath = path.join(videosDir, 'output.mp4');
     await trimVideo(mergedPath, trimmedOutputPath, start, end);
 
-    const downloadUrl = `https://backendyoutubetrimmer.onrender.com/${videosDir}/output.mp4`;
-    res.json({ downloadUrl });
+    // Provide direct download link
+    res.download(trimmedOutputPath, `output.mp4`, (err) => {
+      if (err) {
+        console.error('Error occurred:', err);
+        res.status(500).json({ error: 'Error processing video' });
+      }
+    });
 
     setTimeout(() => {
       deleteVideoDirectory(videosDir);
