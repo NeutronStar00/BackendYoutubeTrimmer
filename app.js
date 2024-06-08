@@ -91,7 +91,7 @@ app.post('/trim', async (req, res) => {
     const trimmedOutputPath = path.join(outputDir, 'output.mp4');
     await trimVideo(mergedPath, trimmedOutputPath, start, end);
 
-    res.json({ downloadUrl: `http://localhost:${port}/${outputDir}/output.mp4` });
+    res.json({ downloadUrl: `https://backendyoutubetrimmer.onrender.com/${outputDir}/output.mp4` });
     setTimeout(() => {
       deleteVideoDirectory(outputDir);
     }, 60 * 10 * 1000); // 10 minutes in milliseconds
