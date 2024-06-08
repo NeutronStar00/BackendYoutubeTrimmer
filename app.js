@@ -38,6 +38,7 @@ const mergeFiles = (videoPath, audioPath, outputPath) => {
         resolve();
       })
       .on('error', (err) => {
+        console.error('Error during merging:', err);
         reject(err);
       });
   });
@@ -47,10 +48,10 @@ const mergeFiles = (videoPath, audioPath, outputPath) => {
 const trimVideo = (inputFilePath, outputFilePath, startTime, endTime) => {
   return new Promise((resolve, reject) => {
     const duration = endTime - startTime;
-    ffmpeg(path.resolve(inputFilePath))
+    ffmpeg(inputFilePath)
       .setStartTime(startTime)
       .setDuration(duration)
-      .output(path.resolve(outputFilePath))
+      .output(outputFilePath)
       .on('end', () => {
         console.log('Trimming finished');
         resolve();
@@ -87,6 +88,15 @@ app.post('/trim', async (req, res) => {
     ]);
 
     console.log('Video download completed!');
+    console.log(`Video Path: ${videoPath}`);
+    console.log(`Audio Path: ${audioPath}`);
+
+    if (!fs.existsSync(videoPath)) {
+      throw new Error(`Video file does not exist: ${videoPath}`);
+    }
+    if (!fs.existsSync(audioPath)) {
+      throw new Error(`Audio file does not exist: ${audioPath}`);
+    }
 
     const mergedPath = path.join(outputDir, 'merged_video.mp4');
     await mergeFiles(videoPath, audioPath, mergedPath);
@@ -94,10 +104,10 @@ app.post('/trim', async (req, res) => {
     const trimmedOutputPath = path.join(outputDir, 'output.mp4');
     await trimVideo(mergedPath, trimmedOutputPath, start, end);
 
-    const downloadUrl = `${req.protocol}://${req.headers.host}/${path.basename(outputDir)}/output.mp4`;
+    const downloadUrl = `https://backendyoutubetrimmer.onrender.com/${outputDir}/output.mp4`;
     res.json({ downloadUrl });
     setTimeout(() => {
-      deleteDirectory(outputDir);
+      deleteVideoDirectory(outputDir);
     }, 60 * 10 * 1000); // 10 minutes in milliseconds
   } catch (err) {
     console.error('Error occurred:', err);
@@ -106,10 +116,10 @@ app.post('/trim', async (req, res) => {
 });
 
 // Serve the trimmed videos
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'videos')));
 
-// Function to delete the directory
-const deleteDirectory = (dirPath) => {
+// Function to delete the video directory
+const deleteVideoDirectory = (dirPath) => {
   fs.rmdirSync(dirPath, { recursive: true });
   console.log(`Deleted directory: ${dirPath}`);
 };
