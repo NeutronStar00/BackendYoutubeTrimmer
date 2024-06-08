@@ -7,13 +7,16 @@ const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 ffmpeg.setFfmpegPath(require('@ffmpeg-installer/ffmpeg').path);
 
+// Initialize Express app
 const app = express();
 app.use(bodyParser.json());
-const port = 10000;
+const port = process.env.PORT || 10000; // Use environment variable for port
 
 app.use(cors());
 
-app.use(express.static(__dirname));
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Function to generate a unique filename
 const generateFilename = () => {
   const timestamp = Date.now();
@@ -44,25 +47,25 @@ const mergeFiles = (videoPath, audioPath, outputPath) => {
 const trimVideo = (inputFilePath, outputFilePath, startTime, endTime) => {
   return new Promise((resolve, reject) => {
     const duration = endTime - startTime;
-ffmpeg(inputFilePath)
-    .setStartTime(startTime)
-    .setDuration(duration)
-    .output(outputFilePath)
-    .on('end', () => {
+    ffmpeg(inputFilePath)
+      .setStartTime(startTime)
+      .setDuration(duration)
+      .output(outputFilePath)
+      .on('end', () => {
         console.log('Trimming finished');
-resolve();
-    })
-    .on('error', (err) => {
+        resolve();
+      })
+      .on('error', (err) => {
         console.error('Error trimming video:', err);
-reject(err);
-    })
-    .run();
-});
+        reject(err);
+      })
+      .run();
+  });
 };
 
-app.get('/', (req, res, next) => {
-  res.send("Working!")
-})
+app.get('/', (req, res) => {
+  res.send("Server is working!");
+});
 
 // Endpoint to handle trimming requests
 app.post('/trim', async (req, res) => {
@@ -76,7 +79,7 @@ app.post('/trim', async (req, res) => {
     const audioFilename = generateFilename() + '.m4a';
     const videoPath = path.join(outputDir, videoFilename);
     const audioPath = path.join(outputDir, audioFilename);
-    
+
     // Download video and audio separately
     await Promise.all([
       ytdl(url, { format: 'bestvideo[ext=mp4]', output: videoPath }),
@@ -91,7 +94,8 @@ app.post('/trim', async (req, res) => {
     const trimmedOutputPath = path.join(outputDir, 'output.mp4');
     await trimVideo(mergedPath, trimmedOutputPath, start, end);
 
-    res.json({ downloadUrl: `https://backendyoutubetrimmer.onrender.com/${outputDir}/output.mp4` });
+    const downloadUrl = `https://backendyoutubetrimmer.onrender.com/${outputDir}/output.mp4`;
+    res.json({ downloadUrl });
     setTimeout(() => {
       deleteVideoDirectory(outputDir);
     }, 60 * 10 * 1000); // 10 minutes in milliseconds
@@ -110,7 +114,6 @@ const deleteVideoDirectory = (dirPath) => {
   console.log(`Deleted directory: ${dirPath}`);
 };
 
-
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });
