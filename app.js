@@ -47,10 +47,10 @@ const mergeFiles = (videoPath, audioPath, outputPath) => {
 const trimVideo = (inputFilePath, outputFilePath, startTime, endTime) => {
   return new Promise((resolve, reject) => {
     const duration = endTime - startTime;
-    ffmpeg(inputFilePath)
+    ffmpeg(path.resolve(inputFilePath))
       .setStartTime(startTime)
       .setDuration(duration)
-      .output(outputFilePath)
+      .output(path.resolve(outputFilePath))
       .on('end', () => {
         console.log('Trimming finished');
         resolve();
@@ -70,8 +70,8 @@ app.get('/', (req, res) => {
 // Endpoint to handle trimming requests
 app.post('/trim', async (req, res) => {
   const { url, start, end } = req.body;
-  const outputDir = generateFilename();
-  fs.mkdirSync(outputDir);
+  const outputDir = path.join(__dirname, generateFilename());
+  fs.mkdirSync(outputDir, { recursive: true });
 
   try {
     console.log('Starting video download...');
@@ -94,10 +94,10 @@ app.post('/trim', async (req, res) => {
     const trimmedOutputPath = path.join(outputDir, 'output.mp4');
     await trimVideo(mergedPath, trimmedOutputPath, start, end);
 
-    const downloadUrl = `https://backendyoutubetrimmer.onrender.com/${outputDir}/output.mp4`;
+    const downloadUrl = `${req.protocol}://${req.headers.host}/${path.basename(outputDir)}/output.mp4`;
     res.json({ downloadUrl });
     setTimeout(() => {
-      deleteVideoDirectory(outputDir);
+      deleteDirectory(outputDir);
     }, 60 * 10 * 1000); // 10 minutes in milliseconds
   } catch (err) {
     console.error('Error occurred:', err);
@@ -106,10 +106,10 @@ app.post('/trim', async (req, res) => {
 });
 
 // Serve the trimmed videos
-app.use(express.static(path.join(__dirname, 'videos')));
+app.use(express.static(__dirname));
 
-// Function to delete the video directory
-const deleteVideoDirectory = (dirPath) => {
+// Function to delete the directory
+const deleteDirectory = (dirPath) => {
   fs.rmdirSync(dirPath, { recursive: true });
   console.log(`Deleted directory: ${dirPath}`);
 };
